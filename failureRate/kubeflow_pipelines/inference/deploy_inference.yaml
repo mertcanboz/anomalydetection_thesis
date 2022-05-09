@@ -1,0 +1,14 @@
+apiVersion: "serving.kserve.io/v1beta1"
+kind: "InferenceService"
+metadata:
+  name: "failure-rate-model"
+  namespace: "dev-profile"
+  annotations:
+    sidecar.istio.io/inject: "false"
+spec:
+  predictor:
+    serviceAccountName: minio-sa
+    sklearn:
+      args: 
+        - --model_dir=/mnt/models/data
+      storageUri: "s3://mlpipeline/artifacts/failure-rate-pipeline-dknpz/2022/02/28/failure-rate-pipeline-dknpz-1803733580/train-model-function-Data.tgz"

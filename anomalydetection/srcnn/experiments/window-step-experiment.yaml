@@ -1,0 +1,55 @@
+apiVersion: kubeflow.org/v1beta1
+kind: Experiment
+metadata:
+  namespace: dev-profile
+  name: srcnn-window-steps-tuning
+  annotations:
+    sidecar.istio.io/inject: "false"
+spec:
+  parallelTrialCount: 4
+  maxTrialCount: 15
+  maxFailedTrialCount: 5
+  objective:
+    type: minimize
+    goal: 0.001
+    objectiveMetricName: loss
+  algorithm:
+    algorithmName: random
+  parameters:
+    - name: window-steps
+      parameterType: discrete
+      feasibleSpace:
+        list: ['16', '32', '64', '128', '256', '512', '650']
+  trialTemplate:
+    primaryContainerName: pytorch
+    trialParameters:
+      - name: windowSteps
+        description: The number of steps to shift the window to create training data for the training model
+        reference: window-steps
+    trialSpec:
+      apiVersion: kubeflow.org/v1
+      kind: PyTorchJob
+      spec:
+        pytorchReplicaSpecs:
+          Master:
+            replicas: 1
+            restartPolicy: OnFailure
+            template:
+              metadata:
+                annotations:
+                  sidecar.istio.io/inject: "false"
+              spec:
+                containers:
+                  - name: pytorch
+                    image: docker.io/mertcanboz/srcnn:latest
+                    command:
+                      - "python3"
+                      - "/opt/srcnn_train/train.py"
+                      - "--epochs=5"
+                      - "--lr=8.95151e-5"
+                      - "--momentum=0.78837"
+                      - "--batch-size=32"
+                      - "--window-steps=${trialParameters.windowSteps}"
+                      - "--data-path=/opt/srcnn_train"
+                      - "--no-cuda"
+                      - "--no-dist"

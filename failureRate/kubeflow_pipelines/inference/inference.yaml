@@ -1,0 +1,14 @@
+name: Inference Function
+description: Inference
+
+inputs:
+- {name: Data, type: LocalPath, description: 'Path where data is stored.'}
+
+implementation:
+  container:
+    image: upscale-docker.docker.repositories.cloud.sap/upscale-sre-docker/kubeflow-poc/kubeflow-poc-inference-component:0.01
+    command: [
+      python, inference.py,
+      --data,
+      {inputPath: Data},
+    ]

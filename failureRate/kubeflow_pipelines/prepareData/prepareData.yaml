@@ -1,0 +1,22 @@
+name: Prepare Data Function
+description: Fetch the data from Thanos (In theory)
+
+inputs:
+- {name: Duration, type: Integer, default: 5, description: 'Consider Anomaly for a certain duration'}
+- {name: Threshold, type: Float, default: 0.02, description: 'Threshold for Failure Rate'}
+
+outputs:
+- {name: Data, type: LocalPath, description: 'Path where data will be stored.'}
+
+implementation:
+  container:
+    image: upscale-docker.docker.repositories.cloud.sap/upscale-sre-docker/kubeflow-poc/kubeflow-poc-prepare-data-component:0.01
+    command: [
+      python, prepareData.py,
+      --duration,
+      {inputValue: Duration},
+      --threshold,
+      {inputValue: Threshold},
+      --data,
+      {outputPath: Data},
+    ]

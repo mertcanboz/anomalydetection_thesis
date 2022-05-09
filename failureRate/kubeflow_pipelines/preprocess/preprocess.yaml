@@ -1,0 +1,19 @@
+name: Preprocess Dataset Function
+description: Preprocess the data
+
+inputs:
+- {name: Data, type: LocalPath, description: 'Path where data is stored.'}
+
+outputs:
+- {name: Data, type: LocalPath, description: 'Path where data will be stored.'}
+
+implementation:
+  container:
+    image: upscale-docker.docker.repositories.cloud.sap/upscale-sre-docker/kubeflow-poc/kubeflow-poc-preprocess-component:0.01
+    command: [
+      python, preprocess.py,
+      --data,
+      {inputPath: Data},
+      --outputdata,
+      {outputPath: Data},
+    ]

@@ -1,0 +1,5 @@
+sklearn
+numpy==1.19.5
+pandas==1.1.5
+matplotlib==3.3.2
+kubernetes

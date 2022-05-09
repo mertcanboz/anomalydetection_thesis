@@ -1,0 +1,10 @@
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: srcnn-with-istio
+  namespace: dev-profile
+spec:
+  predictor:
+    serviceAccountName: minio-sa
+    pytorch:
+      storageUri: "s3://mlpipeline/models/pytorch"

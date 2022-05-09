@@ -1,0 +1,40 @@
+name: Fetch Data Function
+description: Fetch the data from Thanos
+
+inputs:
+- {name: StartYear, type: Integer, default: 2022, description: 'Year of Start Time Range'}
+- {name: StartMonth, type: Integer, default: 4, description: 'Month of Start Time Range'}
+- {name: StartDay, type: Integer, default: 1, description: 'Day of Start Time Range'}
+- {name: StartHour, type: Integer, default: 0, description: 'Hour of Start Time Range'}
+- {name: EndYear, type: Integer, default: 2022, description: 'Year of End Time Range'}
+- {name: EndMonth, type: Integer, default: 4, description: 'Month of End Time Range'}
+- {name: EndDay, type: Integer, default: 10, description: 'Day of End Time Range'}
+- {name: EndHour, type: Integer, default: 0, description: 'Hour of End Time Range'}
+
+outputs:
+- {name: Data, type: LocalPath, description: 'Path where data will be stored.'}
+
+implementation:
+  container:
+    image: upscale-docker.docker.repositories.cloud.sap/upscale-sre-docker/kubeflow-poc/kubeflow-poc-fetch-data-component:0.01
+    command: [
+      python, fetchData.py,
+      --startyear,
+      {inputValue: StartYear},
+      --startmonth,
+      {inputValue: StartMonth},
+      --startday,
+      {inputValue: StartDay},
+      --starthour,
+      {inputValue: StartHour},
+      --endyear,
+      {inputValue: EndYear},
+      --endmonth,
+      {inputValue: EndMonth},
+      --endday,
+      {inputValue: EndDay},
+      --endhour,
+      {inputValue: EndHour},
+      --data,
+      {outputPath: Data},
+    ]

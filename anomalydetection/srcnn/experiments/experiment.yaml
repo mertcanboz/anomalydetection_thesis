@@ -1,0 +1,88 @@
+apiVersion: kubeflow.org/v1beta1
+kind: Experiment
+metadata:
+  namespace: dev-profile
+  name: srcnn-train
+spec:
+  parallelTrialCount: 3
+  maxTrialCount: 12
+  maxFailedTrialCount: 3
+  objective:
+    type: minimize
+    goal: 0.001
+    objectiveMetricName: loss
+  algorithm:
+    algorithmName: random
+  parameters:
+    - name: lr
+      parameterType: double
+      feasibleSpace:
+        min: "0.01"
+        max: "0.05"
+    - name: momentum
+      parameterType: double
+      feasibleSpace:
+        min: "0.5"
+        max: "0.9"
+  trialTemplate:
+    primaryContainerName: pytorch
+    trialParameters:
+      - name: learningRate
+        description: Learning rate for the training model
+        reference: lr
+      - name: momentum
+        description: Momentum for the training model
+        reference: momentum
+    trialSpec:
+      apiVersion: kubeflow.org/v1
+      kind: PyTorchJob
+      spec:
+        pytorchReplicaSpecs:
+          Master:
+            replicas: 1
+            restartPolicy: OnFailure
+            template:
+              spec:
+                volumes:
+                  - name: data-source
+                    persistentVolumeClaim:
+                      claimName: workspace-sr-cnn
+                containers:
+                  - name: pytorch
+                    image: docker.io/mertcanboz/srcnn:latest
+                    volumeMounts:
+                      - mountPath: "/opt/training_data"
+                        name: data-source
+                    command:
+                      - "python3"
+                      - "/opt/srcnn_train/train.py"
+                      - "--epochs=1"
+                      - "--lr=${trialParameters.learningRate}"
+                      - "--momentum=${trialParameters.momentum}"
+                      - "--data-path=/opt/training_data"
+                      - "--no-cuda"
+                      - "--no-dist"
+          Worker:
+            replicas: 2
+            restartPolicy: OnFailure
+            template:
+              spec:
+                volumes:
+                  - name: data-source
+                    persistentVolumeClaim:
+                      claimName: workspace-sr-cnn
+                containers:
+                  - name: pytorch
+                    image: docker.io/mertcanboz/srcnn:latest
+                    volumeMounts:
+                      - mountPath: "/opt/training_data"
+                        name: data-source
+                    command:
+                      - "python3"
+                      - "/opt/srcnn_train/train.py"
+                      - "--epochs=1"
+                      - "--lr=${trialParameters.learningRate}"
+                      - "--momentum=${trialParameters.momentum}"
+                      - "--data-path=/opt/training_data"
+                      - "--no-cuda"
+                      - "--no-dist"

@@ -1,0 +1,140 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: failure-rate-pipeline-
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.8.10, pipelines.kubeflow.org/pipeline_compilation_time: '2022-02-17T15:14:06.934855',
+    pipelines.kubeflow.org/pipeline_spec: '{"description": "PoC Failure Rate Pipeline",
+      "name": "Failure Rate Pipeline"}'}
+  labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.8.10}
+spec:
+  entrypoint: failure-rate-pipeline
+  templates:
+  - name: failure-rate-pipeline
+    dag:
+      tasks:
+      - name: inference-function
+        template: inference-function
+        dependencies: [train-model-function]
+        arguments:
+          artifacts:
+          - {name: train-model-function-Data, from: '{{tasks.train-model-function.outputs.artifacts.train-model-function-Data}}'}
+      - {name: prepare-data-function, template: prepare-data-function}
+      - name: preprocess-dataset-function
+        template: preprocess-dataset-function
+        dependencies: [prepare-data-function]
+        arguments:
+          artifacts:
+          - {name: prepare-data-function-Data, from: '{{tasks.prepare-data-function.outputs.artifacts.prepare-data-function-Data}}'}
+      - name: train-model-function
+        template: train-model-function
+        dependencies: [preprocess-dataset-function]
+        arguments:
+          artifacts:
+          - {name: preprocess-dataset-function-Data, from: '{{tasks.preprocess-dataset-function.outputs.artifacts.preprocess-dataset-function-Data}}'}
+  - name: inference-function
+    container:
+      args: []
+      command: [python, inference.py, --data, /tmp/inputs/Data/data]
+      image: upscale-docker.docker.repositories.cloud.sap/upscale-sre-docker/kubeflow-poc/kubeflow-poc-inference-component:0.01
+      imagePullPolicy: Always
+    inputs:
+      artifacts:
+      - {name: train-model-function-Data, path: /tmp/inputs/Data/data}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.10
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+      annotations: {pipelines.kubeflow.org/component_spec: '{"description": "Inference",
+          "implementation": {"container": {"command": ["python", "inference.py", "--data",
+          {"inputPath": "Data"}], "image": "upscale-docker.docker.repositories.cloud.sap/upscale-sre-docker/kubeflow-poc/kubeflow-poc-inference-component:0.01"}},
+          "inputs": [{"description": "Path where data is stored.", "name": "Data",
+          "type": "LocalPath"}], "name": "Inference Function"}', pipelines.kubeflow.org/component_ref: '{"digest":
+          "2d041d691d49beb5f5a8e065a4e080ad41486fcb22690a726e21b8e532acba03", "url":
+          "inference/inference.yaml"}', pipelines.kubeflow.org/max_cache_staleness: P0D}
+  - name: prepare-data-function
+    container:
+      args: []
+      command: [python, prepareData.py, --duration, '5', --threshold, '0.02', --data,
+        /tmp/outputs/Data/data]
+      image: upscale-docker.docker.repositories.cloud.sap/upscale-sre-docker/kubeflow-poc/kubeflow-poc-prepare-data-component:0.01
+      imagePullPolicy: Always
+    outputs:
+      artifacts:
+      - {name: prepare-data-function-Data, path: /tmp/outputs/Data/data}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.10
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+      annotations: {pipelines.kubeflow.org/component_spec: '{"description": "Fetch
+          the data from Thanos (In theory)", "implementation": {"container": {"command":
+          ["python", "prepareData.py", "--duration", {"inputValue": "Duration"}, "--threshold",
+          {"inputValue": "Threshold"}, "--data", {"outputPath": "Data"}], "image":
+          "upscale-docker.docker.repositories.cloud.sap/upscale-sre-docker/kubeflow-poc/kubeflow-poc-prepare-data-component:0.01"}},
+          "inputs": [{"default": 5, "description": "Consider Anomaly for a certain
+          duration", "name": "Duration", "type": "Integer"}, {"default": 0.02, "description":
+          "Threshold for Failure Rate", "name": "Threshold", "type": "Float"}], "name":
+          "Prepare Data Function", "outputs": [{"description": "Path where data will
+          be stored.", "name": "Data", "type": "LocalPath"}]}', pipelines.kubeflow.org/component_ref: '{"digest":
+          "55c4f9af77d2d3f63e85054ba169ce8635afd25762314a00d13d29be850e53ee", "url":
+          "prepareData/prepareData.yaml"}', pipelines.kubeflow.org/arguments.parameters: '{"Duration":
+          "5", "Threshold": "0.02"}', pipelines.kubeflow.org/max_cache_staleness: P0D}
+  - name: preprocess-dataset-function
+    container:
+      args: []
+      command: [python, preprocess.py, --data, /tmp/inputs/Data/data, --outputdata,
+        /tmp/outputs/Data/data]
+      image: upscale-docker.docker.repositories.cloud.sap/upscale-sre-docker/kubeflow-poc/kubeflow-poc-preprocess-component:0.01
+      imagePullPolicy: Always
+    inputs:
+      artifacts:
+      - {name: prepare-data-function-Data, path: /tmp/inputs/Data/data}
+    outputs:
+      artifacts:
+      - {name: preprocess-dataset-function-Data, path: /tmp/outputs/Data/data}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.10
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+      annotations: {pipelines.kubeflow.org/component_spec: '{"description": "Preprocess
+          the data", "implementation": {"container": {"command": ["python", "preprocess.py",
+          "--data", {"inputPath": "Data"}, "--outputdata", {"outputPath": "Data"}],
+          "image": "upscale-docker.docker.repositories.cloud.sap/upscale-sre-docker/kubeflow-poc/kubeflow-poc-preprocess-component:0.01"}},
+          "inputs": [{"description": "Path where data is stored.", "name": "Data",
+          "type": "LocalPath"}], "name": "Preprocess Dataset Function", "outputs":
+          [{"description": "Path where data will be stored.", "name": "Data", "type":
+          "LocalPath"}]}', pipelines.kubeflow.org/component_ref: '{"digest": "84349c6d82d5efc4f5f2df2bffa52243f61e5b5ba7ed1be81b0ddee5d4110a7d",
+          "url": "preprocess/preprocess.yaml"}'}
+  - name: train-model-function
+    container:
+      args: []
+      command: [python, train.py, --data, /tmp/inputs/Data/data, --outputdata, /tmp/outputs/Data/data]
+      image: upscale-docker.docker.repositories.cloud.sap/upscale-sre-docker/kubeflow-poc/kubeflow-poc-train-component:0.01
+      imagePullPolicy: Always
+    inputs:
+      artifacts:
+      - {name: preprocess-dataset-function-Data, path: /tmp/inputs/Data/data}
+    outputs:
+      artifacts:
+      - {name: train-model-function-Data, path: /tmp/outputs/Data/data}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.10
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+      annotations: {pipelines.kubeflow.org/component_spec: '{"description": "Train
+          the data", "implementation": {"container": {"command": ["python", "train.py",
+          "--data", {"inputPath": "Data"}, "--outputdata", {"outputPath": "Data"}],
+          "image": "upscale-docker.docker.repositories.cloud.sap/upscale-sre-docker/kubeflow-poc/kubeflow-poc-train-component:0.01"}},
+          "inputs": [{"description": "Path where data is stored.", "name": "Data",
+          "type": "LocalPath"}], "name": "Train Model Function", "outputs": [{"description":
+          "Path where data will be stored.", "name": "Data", "type": "LocalPath"}]}',
+        pipelines.kubeflow.org/component_ref: '{"digest": "e7d82f58dc1e8e385c13f897187d34d65aed4f15c1090d344648bb4b4c88bdfc",
+          "url": "train/train.yaml"}', pipelines.kubeflow.org/max_cache_staleness: P0D}
+  arguments:
+    parameters: []
+  serviceAccountName: pipeline-runner
+  imagePullSecrets:
+  - {name: myregistry2}

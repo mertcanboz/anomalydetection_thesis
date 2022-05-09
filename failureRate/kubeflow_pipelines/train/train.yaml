@@ -1,0 +1,28 @@
+name: Train Model Function
+description: Train the data
+
+inputs:
+- {name: Data, type: LocalPath, description: 'Path where data is stored.'}
+- {name: Rounds, type: Integer, default: '30', description: 'Number of training rounds'}
+- {name: GridSearch, type: Bool, default: False, description: 'Whether enable grid search'}
+
+outputs:
+- {name: Data, type: LocalPath, description: 'Path where data will be stored.'}
+- {name: MLPipeline Metrics, type: Metrics, description: 'Model Metrics.'}
+
+implementation:
+  container:
+    image: upscale-docker.docker.repositories.cloud.sap/upscale-sre-docker/kubeflow-poc/kubeflow-poc-train-component:0.01
+    command: [
+      python, train.py,
+      --data,
+      {inputPath: Data},
+      --outputdata,
+      {outputPath: Data},
+      --metrics,
+      {outputPath: MLPipeline Metrics},
+      --rounds,    
+      {inputValue: Rounds},
+      --gridsearch,
+      {inputValue: GridSearch}
+    ]

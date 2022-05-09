@@ -1,0 +1,56 @@
+apiVersion: kubeflow.org/v1beta1
+kind: Experiment
+metadata:
+  namespace: dev-profile
+  name: srcnn-weight-decay-tuning
+  annotations:
+    sidecar.istio.io/inject: "false"
+spec:
+  parallelTrialCount: 5
+  maxTrialCount: 100
+  maxFailedTrialCount: 5
+  objective:
+    type: minimize
+    goal: 0.001
+    objectiveMetricName: loss
+  algorithm:
+    algorithmName: random
+  parameters:
+    - name: weight-decay
+      parameterType: double
+      feasibleSpace:
+        min: "0.01"
+        max: "0.99"
+  trialTemplate:
+    primaryContainerName: pytorch
+    trialParameters:
+      - name: weightDecay
+        description: Weight decay for the training model
+        reference: weight-decay
+    trialSpec:
+      apiVersion: kubeflow.org/v1
+      kind: PyTorchJob
+      spec:
+        pytorchReplicaSpecs:
+          Master:
+            replicas: 1
+            restartPolicy: OnFailure
+            template:
+              metadata:
+                annotations:
+                  sidecar.istio.io/inject: "false"
+              spec:
+                containers:
+                  - name: pytorch
+                    image: docker.io/mertcanboz/srcnn:latest
+                    command:
+                      - "python3"
+                      - "/opt/srcnn_train/train.py"
+                      - "--epochs=10"
+                      - "--lr=9.01143e-5"
+                      - "--momentum=0.66911"
+                      - "--batch-size=32"
+                      - "--weight-decay=${trialParameters.weightDecay}"
+                      - "--data-path=/opt/srcnn_train"
+                      - "--no-cuda"
+                      - "--no-dist"

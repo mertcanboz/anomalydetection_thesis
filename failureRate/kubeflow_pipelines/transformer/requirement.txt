@@ -1,0 +1,14 @@
+Cython==0.29.18
+cmdstanpy==0.9.68
+pystan==2.19.1.1
+numpy>=1.15.4
+pandas>=1.0.4
+matplotlib==2.0.0
+plotly==4.13
+kserve==0.8.0rc0
+prophet
+scikit-learn>=0.22
+salesforce-merlion==1.1.1
+kubernetes
+minio==6.0.2
+joblib==1.1.0

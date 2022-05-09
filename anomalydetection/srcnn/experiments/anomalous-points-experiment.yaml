@@ -1,0 +1,56 @@
+apiVersion: kubeflow.org/v1beta1
+kind: Experiment
+metadata:
+  namespace: dev-profile
+  name: srcnn-anomalous-point-insertion-tuning
+  annotations:
+    sidecar.istio.io/inject: "false"
+spec:
+  parallelTrialCount: 4
+  maxTrialCount: 15
+  maxFailedTrialCount: 5
+  objective:
+    type: minimize
+    goal: 0.001
+    objectiveMetricName: loss
+  algorithm:
+    algorithmName: random
+  parameters:
+    - name: anomalous-points
+      parameterType: discrete
+      feasibleSpace:
+        list: ['2', '10', '20', '30', '40']
+  trialTemplate:
+    primaryContainerName: pytorch
+    trialParameters:
+      - name: anomalousPoints
+        description: The number of anomalous points to insert into training data for the training model
+        reference: anomalous-points
+    trialSpec:
+      apiVersion: kubeflow.org/v1
+      kind: PyTorchJob
+      spec:
+        pytorchReplicaSpecs:
+          Master:
+            replicas: 1
+            restartPolicy: OnFailure
+            template:
+              metadata:
+                annotations:
+                  sidecar.istio.io/inject: "false"
+              spec:
+                containers:
+                  - name: pytorch
+                    image: docker.io/mertcanboz/srcnn:latest
+                    command:
+                      - "python3"
+                      - "/opt/srcnn_train/train.py"
+                      - "--epochs=5"
+                      - "--lr=8.95151e-5"
+                      - "--momentum=0.78837"
+                      - "--batch-size=32"
+                      - "--window-steps=32"
+                      - "--num-of-anomalous-points=${trialParameters.anomalousPoints}"
+                      - "--data-path=/opt/srcnn_train"
+                      - "--no-cuda"
+                      - "--no-dist"
